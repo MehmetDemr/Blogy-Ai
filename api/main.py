@@ -17,7 +17,7 @@ def simple_preprocess(text: str) -> str:
 
 
 # Model yükleme
-MODELS_DIR = Path("models")
+MODELS_DIR = Path("../models")
 tag_model = joblib.load(MODELS_DIR / "tag_model.joblib")
 tag_mlb = joblib.load(MODELS_DIR / "tag_mlb.joblib")
 

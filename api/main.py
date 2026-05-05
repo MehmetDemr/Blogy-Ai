@@ -7,7 +7,6 @@ import numpy as np
 import re
 
 
-# Preprocessing fonksiyonu (modelde DEĞİL, sadece burada kullanılacak)
 def simple_preprocess(text: str) -> str:
     text = text.lower()
     text = re.sub(r"http\S+", " ", text)
@@ -16,10 +15,20 @@ def simple_preprocess(text: str) -> str:
     return text
 
 
-# Model yükleme
-MODELS_DIR = Path("../models")
-tag_model = joblib.load(MODELS_DIR / "tag_model.joblib")
-tag_mlb = joblib.load(MODELS_DIR / "tag_mlb.joblib")
+BASE_DIR = Path(__file__).resolve().parent
+MODELS_DIR = BASE_DIR.parent / "models"
+
+tag_model_path = MODELS_DIR / "tag_model.joblib"
+tag_mlb_path = MODELS_DIR / "tag_mlb.joblib"
+
+if not tag_model_path.exists():
+    raise FileNotFoundError(f"Model file not found: {tag_model_path}")
+
+if not tag_mlb_path.exists():
+    raise FileNotFoundError(f"MLB file not found: {tag_mlb_path}")
+
+tag_model = joblib.load(tag_model_path)
+tag_mlb = joblib.load(tag_mlb_path)
 
 TAGS = list(tag_mlb.classes_)
 
@@ -44,6 +53,11 @@ app = FastAPI(
 )
 
 
+@app.get("/")
+def health_check():
+    return {"status": "ok", "message": "Blogy Tag AI is running"}
+
+
 @app.post("/tag", response_model=TagResponse)
 def predict_tags(req: TagRequest):
     text = req.text
@@ -51,14 +65,9 @@ def predict_tags(req: TagRequest):
     if not text or not text.strip():
         return TagResponse(tags=[])
 
-    # ÖNEMLİ: Metni önce preprocess et
     text_clean = simple_preprocess(text)
-    
-    # Model ile tahmin
-    probs = tag_model.predict_proba([text_clean])[0]
 
-    if len(probs) != len(TAGS):
-        print("Beklenmeyen output boyutu:", len(probs), "TAGS len:", len(TAGS))
+    probs = tag_model.predict_proba([text_clean])[0]
 
     threshold = 0.5
     predictions: List[TagPrediction] = []
